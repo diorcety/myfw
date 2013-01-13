@@ -72,25 +72,14 @@ BOOL handle_set_configuration(BYTE cfg) {
 
 
 BOOL handle_vendorcommand(BYTE cmd) {
-  if(cmd == 0x99) {
-	/*usb_printf("CMD %x", cmd);
-	return TRUE;*/
-	if ( SETUP_TYPE == (REQDIR_DEVICETOHOST | REQTYPE_VENDOR) ) {
-			short num1 = SETUP_VALUE();
-			short num2 = SETUP_INDEX();
-			short *response = (short*)EP0BUF;
-			while ( EP0CS & bmEPBUSY );
-			response[0] = num1 + num2;
-			response[1] = num1 - num2;
-			response[2] = num1 * num2;
-			response[3] = num1 / num2;
-			EP0BCH = 0;
-			SYNCDELAY();
-			EP0BCL = 8;
-		}
+	if(cmd == 0x99) {
+		EP0BCH=0;
+		EP0BCL=0;
+		EP0CS |= bmHSNAK;
+		usb_printf2("Test\n");
 		return TRUE;
- }
- return FALSE; // not handled by handlers
+	}
+	return FALSE;
 }
 
 
@@ -98,23 +87,10 @@ BOOL handle_vendorcommand(BYTE cmd) {
 
 void main_init() {
 
- REVCTL=3;
+ REVCTL=0x0;
  SETIF48MHZ();
 
- // set IFCONFIG
- EP1INCFG &= ~bmVALID;
- SYNCDELAY();
- EP1OUTCFG &= ~bmVALID;
- SYNCDELAY();
- EP2CFG &= ~bmVALID;
- SYNCDELAY();
- EP4CFG = 0x90;
- SYNCDELAY();
- EP6CFG = 0xE2; // 11100010 
- SYNCDELAY();
- EP8CFG &= ~bmVALID;
- SYNCDELAY(); 
- /* // Reset all the FIFOs
+  // Reset all the FIFOs
  FIFORESET = bmNAKALL; SYNCDELAY();
  FIFORESET = bmNAKALL | 2; SYNCDELAY();  // reset EP2
  FIFORESET = bmNAKALL | 4; SYNCDELAY();  // reset EP4
@@ -126,18 +102,12 @@ void main_init() {
  EP1INCFG &= ~bmVALID; SYNCDELAY();
  EP1OUTCFG &= ~bmVALID; SYNCDELAY();
  EP2CFG &= ~bmVALID; SYNCDELAY();
- EP4CFG = (bmVALID | bmISO | bmBUF2X); SYNCDELAY();
- EP6CFG = (bmVALID | bmBULK | bmBUF2X); SYNCDELAY();
- EP8CFG &= ~bmVALID; SYNCDELAY(); */
-
- //printf ( "Initialization Done.\n" );
-
+ EP4CFG = (bmVALID | bmISO | bmBUF2X | bmDIR); SYNCDELAY();
+ EP6CFG = (bmVALID | bmBULK | bmBUF2X | bmDIR); SYNCDELAY();
+ EP8CFG &= ~bmVALID; SYNCDELAY(); 
 }
 
 int bb=0;
 int cc=0;
 void main_loop() {
-	if(((++bb)%(256*256)) == 0) {
-		//usb_printf( "Test %d\n", cc);
-	}
 }

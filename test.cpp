@@ -15,6 +15,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  **/
+
+#include <stdlib.h>
 #include <cstdio>
 #include <cassert>
 #ifdef WIN32
@@ -53,22 +55,28 @@ void debug_wait(libusb_device_handle *hndl) {
 }
 
 int main(int argc, char* argv[]) {
-
+ int rv;
  libusb_context* ctx;
  libusb_init(&ctx);
- libusb_set_debug(ctx, LIBUSB_LOG_LEVEL_WARNING);
  libusb_device_handle* hndl = libusb_open_device_with_vid_pid(ctx,0x04b4,0x1004);
  if(hndl == NULL) {
    printf("Can't open device\n");
    return -100;
  }
+ 
+#ifndef WIN32
+ rv = libusb_kernel_driver_active(hndl, 0); 
+ if (rv == 1) { 
+	rv = libusb_detach_kernel_driver(hndl, 0); 
+ } 
+#endif
+ libusb_set_configuration(hndl, 1);
  libusb_claim_interface(hndl,0);
  libusb_set_interface_alt_setting(hndl,0,0);
  
  //debug_wait(hndl);
  
  int transferred;
- int rv;
  unsigned char buf2[128];
  int np = 0;
  while(1) {
@@ -86,22 +94,17 @@ int main(int argc, char* argv[]) {
    
    if(((++np)%50) == 0) {
      printf("Send control\n");
-     unsigned char tt[]= {0x33, 0x44};
-	 
 	 rv = libusb_control_transfer(hndl, 
 		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
 		0x99,
 		0x11,
 		0x22,
-		tt,
-		2,
+		0,
+		0,
 		0);
-	if(rv < 0) {
+	if(rv != 0) {
         printf ( "CONTROL Transfer failed: %s(%d)\n", libusb_error_name(rv), rv);
-        //return rv;
-	} else if(rv != sizeof(tt)) {
-	    printf ( "CONTROL Transfer invalid size: %d  %d\n", sizeof(tt), rv);
-        //return rv;
+        return rv;
 	}
    }
  }

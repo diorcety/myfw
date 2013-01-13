@@ -18,46 +18,16 @@
 
 #include <fx2macros.h>
 #include <delay.h>
+#include <setupdat.h>
+#include "utils.h"
 
+// USB command macros, copied from Dean Camera's LUFA package
+#define REQDIR_DEVICETOHOST (1 << 7)
+#define REQDIR_HOSTTODEVICE (0 << 7)
+#define REQTYPE_CLASS       (1 << 5)
+#define REQTYPE_STANDARD    (0 << 5)
+#define REQTYPE_VENDOR      (2 << 5)
 #define SYNCDELAY() SYNCDELAY4
-
-//#ifdef DEBUG_FIRMWARE
-#include <stdio.h>
-#include <string.h>
-//#else
-#undef printf
-int printf(const char *format, ...) {
-    int len;
-    int ret;
-    va_list argptr;
-    char *dest = EP6FIFOBUF;
-    while(EP2468STAT & bmEP6FULL) {
-           __asm
-           nop
-           nop
-           nop
-           nop
-           nop
-           nop
-           nop
-           __endasm;
-    }
-    dest[0]='\0';
-    va_start(argptr, format);
-    ret = vsprintf(dest, format, argptr);
-    va_end(argptr);
-    len = strlen(dest);
-    if(len > 0) {
-    len++;
-      // ARM ep6 out
-      EP6BCH=MSB(len);
-      SYNCDELAY();
-      EP6BCL=LSB(len);
-    }
-    return ret;
-}
-//#define printf(...)
-//#endif
 
 //************************** Configuration Handlers *****************************
 
@@ -92,7 +62,7 @@ BYTE handle_get_configuration() {
 volatile __bit aa=0;
 // NOTE changing config requires the device to reset all the endpoints
 BOOL handle_set_configuration(BYTE cfg) { 
- printf ( "Set Configuration %d.\n", ++aa);
+ usb_printf ( "Set Configuration %d.\n", ++aa);
  //config=cfg;
  return TRUE;
 }
@@ -102,7 +72,24 @@ BOOL handle_set_configuration(BYTE cfg) {
 
 
 BOOL handle_vendorcommand(BYTE cmd) {
- // your custom vendor handler code here..
+  if(cmd == 0x99) {
+	/*usb_printf("CMD %x", cmd);
+	return TRUE;*/
+	if ( SETUP_TYPE == (REQDIR_DEVICETOHOST | REQTYPE_VENDOR) ) {
+			short num1 = SETUP_VALUE();
+			short num2 = SETUP_INDEX();
+			short *response = (short*)EP0BUF;
+			while ( EP0CS & bmEPBUSY );
+			response[0] = num1 + num2;
+			response[1] = num1 - num2;
+			response[2] = num1 * num2;
+			response[3] = num1 / num2;
+			EP0BCH = 0;
+			SYNCDELAY();
+			EP0BCL = 8;
+		}
+		return TRUE;
+ }
  return FALSE; // not handled by handlers
 }
 
@@ -115,27 +102,42 @@ void main_init() {
  SETIF48MHZ();
 
  // set IFCONFIG
- EP2CFG = 0xA2; // 10100010
+ EP1INCFG &= ~bmVALID;
  SYNCDELAY();
- EP6CFG = 0xE2; // 11100010 
+ EP1OUTCFG &= ~bmVALID;
  SYNCDELAY();
- EP1INCFG = 0xA0;
- SYNCDELAY();
- EP1OUTCFG = 0xA0;
+ EP2CFG &= ~bmVALID;
  SYNCDELAY();
  EP4CFG = 0x90;
  SYNCDELAY();
- EP8CFG = 0xA0;
+ EP6CFG = 0xE2; // 11100010 
+ SYNCDELAY();
+ EP8CFG &= ~bmVALID;
  SYNCDELAY(); 
+ /* // Reset all the FIFOs
+ FIFORESET = bmNAKALL; SYNCDELAY();
+ FIFORESET = bmNAKALL | 2; SYNCDELAY();  // reset EP2
+ FIFORESET = bmNAKALL | 4; SYNCDELAY();  // reset EP4
+ FIFORESET = bmNAKALL | 6; SYNCDELAY();  // reset EP6
+ FIFORESET = bmNAKALL | 8; SYNCDELAY();  // reset EP8
+ FIFORESET = 0x00; SYNCDELAY();
+ 
+ // set IFCONFIG
+ EP1INCFG &= ~bmVALID; SYNCDELAY();
+ EP1OUTCFG &= ~bmVALID; SYNCDELAY();
+ EP2CFG &= ~bmVALID; SYNCDELAY();
+ EP4CFG = (bmVALID | bmISO | bmBUF2X); SYNCDELAY();
+ EP6CFG = (bmVALID | bmBULK | bmBUF2X); SYNCDELAY();
+ EP8CFG &= ~bmVALID; SYNCDELAY(); */
 
  //printf ( "Initialization Done.\n" );
 
 }
 
-
+int bb=0;
+int cc=0;
 void main_loop() {
-// printf ( "Test\n");
- // do some work
+	if(((++bb)%(256*256)) == 0) {
+		//usb_printf( "Test %d\n", cc);
+	}
 }
-
-

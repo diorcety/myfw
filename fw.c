@@ -21,14 +21,7 @@
 #include <autovector.h>
 #include <delay.h>
 #include <setupdat.h>
-
-#ifdef DEBUG_FIRMWARE 
-#include <serial.h>
-#include <stdio.h>
-#else
-#define printf(...)
-#endif
-
+#include "utils.h"
 
 
 
@@ -38,7 +31,6 @@ volatile __bit dosuspend=FALSE;
 // custom functions
 extern void main_loop();
 extern void main_init();
-
 
 void main() {
 

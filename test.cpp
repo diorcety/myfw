@@ -60,49 +60,83 @@ void debug_wait(libusb_device_handle *hndl) {
 	}
 }
 
+int read_debug(libusb_device_handle *hndl, int wait = 1) {
+	int rv;
+	int transferred;
+	unsigned char buf[64];
+	rv = libusb_bulk_transfer(hndl, 0x88, (unsigned char*)buf, sizeof(buf), &transferred, wait); 
+	if (rv == 0 && transferred > 0) {
+		printf("%s", buf); 
+		fflush(stdout);
+	} else if(rv != LIBUSB_ERROR_TIMEOUT) {
+		printf ( "IN Transfer(Debug) failed: %s(%d)\n", libusb_error_name(rv), rv);
+	}
+	return rv;
+}
+
+#define BENCH_DATA_SIZE (40000)
+int nb_transfer = 0;
+#ifdef WIN32
+LARGE_INTEGER bench_base_time;
+LARGE_INTEGER bench_start_time;
+LARGE_INTEGER bench_stop_time;
+#endif
+
+void bench_start() {
+nb_transfer = 0;
+#ifdef WIN32
+QueryPerformanceFrequency(&bench_base_time);
+QueryPerformanceCounter(&bench_start_time);
+#endif
+}
+
+void bench_inc() {
+	++nb_transfer;
+}
+
+void bench_stop() {
+#ifdef WIN32
+QueryPerformanceCounter(&bench_stop_time);
+#endif
+}
+
+void bench_stats() {
+	float time;
+	float rate;
+#ifdef WIN32
+	time = bench_stop_time.QuadPart - bench_start_time.QuadPart;
+	time /= bench_base_time.QuadPart;
+	time *= 1000;
+#endif
+	rate = (float) BENCH_DATA_SIZE / time;
+	printf("Stats %d bytes in %f ms : %f kbytes/s\n", BENCH_DATA_SIZE, time, rate);
+	printf("Nb transfer %d\n", nb_transfer);
+}
+
 int main(int argc, char* argv[]) {
- int rv;
- libusb_context* ctx;
- libusb_init(&ctx);
- libusb_device_handle* hndl = libusb_open_device_with_vid_pid(ctx,0x04b4,0x1004);
- if(hndl == NULL) {
-   printf("Can't open device\n");
-   return -100;
- }
+	int rv;
+	libusb_context* ctx;
+	libusb_init(&ctx);
+	libusb_device_handle* hndl = libusb_open_device_with_vid_pid(ctx,0x04b4,0x1004);
+	if(hndl == NULL) {
+		printf("Can't open device\n");
+		return -100;
+	}
  
 #ifndef WIN32
- rv = libusb_kernel_driver_active(hndl, 0); 
- if (rv == 1) { 
-	rv = libusb_detach_kernel_driver(hndl, 0); 
- } 
+	rv = libusb_kernel_driver_active(hndl, 0); 
+	if (rv == 1) { 
+		rv = libusb_detach_kernel_driver(hndl, 0); 
+	} 
 #endif
- libusb_set_configuration(hndl, 1);
- libusb_claim_interface(hndl,0);
- libusb_set_interface_alt_setting(hndl,0,0);
+	libusb_set_configuration(hndl, 1);
+	libusb_claim_interface(hndl, 0);
+	libusb_set_interface_alt_setting(hndl, 0, 0);
  
- debug_wait(hndl);
- 
- int transferred;
- unsigned char buf2[128];
- int np = 0;
- while(1) {
-   printf(".");
-   fflush(stdout);
-   rv=libusb_bulk_transfer(hndl,0x86,(unsigned char*)buf2,sizeof(buf2),&transferred,100); 
-   if (rv == 0 && transferred > 0) {
-	printf("%s", buf2); 
-	fflush(stdout);
-   } else if(rv != LIBUSB_ERROR_TIMEOUT) {
-        printf ( "IN Transfer failed: %s(%d)\n", libusb_error_name(rv), rv);
-        return rv;
-
-   }
-   
-   if(((++np)%50) == 0) {
-     printf("Send control\n");
-	 rv = libusb_control_transfer(hndl, 
+	printf("RESET\n"); 
+	rv = libusb_control_transfer(hndl, 
 		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
-		0x99,
+		0x90,
 		0x11,
 		0x22,
 		0,
@@ -112,9 +146,76 @@ int main(int argc, char* argv[]) {
         printf ( "CONTROL Transfer failed: %s(%d)\n", libusb_error_name(rv), rv);
         return rv;
 	}
-   }
- }
-
-
- return 0;
+	
+	printf("Enable debug\n");
+	rv = libusb_control_transfer(hndl, 
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		0x91,
+		0x01,
+		0x22,
+		0,
+		0,
+		0);
+	if(rv != 0) {
+        printf ( "CONTROL(Debug) Transfer failed: %s(%d)\n", libusb_error_name(rv), rv);
+        return rv;
+	}
+	read_debug(hndl, 0);
+	while(read_debug(hndl) != LIBUSB_ERROR_TIMEOUT);
+	
+	
+	int bench_size = BENCH_DATA_SIZE;
+    printf("Send Test\n");
+	rv = libusb_control_transfer(hndl, 
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		0x92,
+		0xffff & bench_size,
+		0xffff & (bench_size >> 16),
+		0,
+		0,
+		0);
+	if(rv != 0) {
+        printf ( "CONTROL(Start) Transfer failed: %s(%d)\n", libusb_error_name(rv), rv);
+        return rv;
+	}
+	read_debug(hndl, 0);
+	
+	bench_start();
+	int timeout_count = 0;
+	while(bench_size > 0) {
+		int len = bench_size;
+		int transferred;
+		#define BUF_SIZE (1024*3)
+		unsigned char buf[BUF_SIZE];
+		if(len > BUF_SIZE) {
+			len = BUF_SIZE;
+		}
+		rv = libusb_bulk_transfer(hndl, 0x82, (unsigned char*)buf, len, &transferred, 1); 
+		bench_size -= transferred;
+		if(rv != LIBUSB_ERROR_TIMEOUT) {
+			if (rv != 0) {
+				printf ( "IN Transfer(Bench) failed: %s(%d)\n", libusb_error_name(rv), rv);
+				read_debug(hndl, 500);
+				return rv;
+			}/* else if(transferred != len) {
+				printf ( "IN Transfer(Bench) failed: %d %d (remaining %d)\n", len, transferred, bench_size);
+				read_debug(hndl, 500);
+				return rv;
+			} */else {
+				timeout_count = 0;
+				bench_inc();
+			}
+		} else {
+			if(++timeout_count > 300) {
+				printf ( "Timeout ...\n");
+				return -1;
+			}
+		}
+	}
+	bench_stop();
+	printf("Test end\n");
+	while(read_debug(hndl) != LIBUSB_ERROR_TIMEOUT);
+	libusb_close(hndl);
+	bench_stats();
+	return 0;
 }

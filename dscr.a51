@@ -107,7 +107,7 @@ highspd_dscr_end:
 ; endpoint 1 out
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x01				;  ep1 dir=out and address
+	.db	0x01				; ep1 dir=out and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x00				; max packet LSB
 	.db	0x02				; max packet size=512 bytes
@@ -116,25 +116,25 @@ highspd_dscr_end:
 ; endpoint 1 in 
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x81				;  ep1 dir=in and address
+	.db	0x81				; ep1 dir=in and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x00				; max packet LSB
 	.db	0x02				; max packet size=512 bytes
 	.db	0x00				; polling interval
 
-; endpoint 2 out
+; endpoint 2 in
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x02				;  ep2 dir=OUT and address
+	.db	0x82				; ep2 dir=in and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x00				; max packet LSB
-	.db	0x02				; max packet size=512 bytes
+	.db	0x14				; max packet size=1024 bytes 3*
 	.db	0x00				; polling interval
 
-; endpoint 4 out
+; endpoint 4 in
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x84				;  ep4 dir=in and address
+	.db	0x84				; ep4 dir=in and address
 	.db	ENDPOINT_TYPE_ISO	; type
 	.db	0x00				; max packet LSB
 	.db	0x02				; max packet size=512 bytes
@@ -143,7 +143,7 @@ highspd_dscr_end:
 ; endpoint 6 in
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x86				;  ep6 dir=in and address
+	.db	0x86				; ep6 dir=in and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x00				; max packet LSB
 	.db	0x02				; max packet size=512 bytes
@@ -152,7 +152,7 @@ highspd_dscr_end:
 ; endpoint 8 in
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x88				;  ep8 dir=in and address
+	.db	0x88				; ep8 dir=in and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x00				; max packet LSB
 	.db	0x02				; max packet size=512 bytes
@@ -190,7 +190,7 @@ fullspd_dscr_end:
 ; endpoint 1 out
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x01				;  ep1 dir=out and address
+	.db	0x01				; ep1 dir=out and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes
@@ -199,25 +199,25 @@ fullspd_dscr_end:
 ; endpoint 1 in 
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x81				;  ep1 dir=in and address
+	.db	0x81				; ep1 dir=in and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes
 	.db	0x00				; polling interval
 
-; endpoint 2 out
+; endpoint 2 in
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x02				;  ep2 dir=OUT and address
+	.db	0x82				; ep2 dir=int and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes
 	.db	0x00				; polling interval
 
-; endpoint 4 out
+; endpoint 4 in
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x84				;  ep4 dir=in and address
+	.db	0x84				; ep4 dir=in and address
 	.db	ENDPOINT_TYPE_ISO	; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes
@@ -226,7 +226,7 @@ fullspd_dscr_end:
 ; endpoint 6 in
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x86				;  ep6 dir=in and address
+	.db	0x86				; ep6 dir=in and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes
@@ -234,7 +234,7 @@ fullspd_dscr_end:
 ; endpoint 6 in
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x88				;  ep6 dir=in and address
+	.db	0x88				; ep6 dir=in and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes

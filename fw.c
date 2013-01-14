@@ -35,7 +35,7 @@ extern void main_init();
 void main() {
 
 //#ifdef DEBUG_FIRMWARE
-// SETCPUFREQ(CLK_48M); // required for sio0_init 
+ SETCPUFREQ(CLK_48M); // required for sio0_init 
  // main_init can still set this to whatever you want.
 // sio0_init(57600); // needed for printf if debug defined 
 //#endif
@@ -112,10 +112,12 @@ void sudav_isr() __interrupt SUDAV_ISR {
  dosud=TRUE;
  CLEAR_SUDAV();
 }
+
 void usbreset_isr() __interrupt USBRESET_ISR {
  handle_hispeed(FALSE);
  CLEAR_USBRESET();
 }
+
 void hispeed_isr() __interrupt HISPEED_ISR {
  handle_hispeed(TRUE);
  CLEAR_HISPEED();

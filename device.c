@@ -21,12 +21,6 @@
 #include <setupdat.h>
 #include "utils.h"
 
-// USB command macros, copied from Dean Camera's LUFA package
-#define REQDIR_DEVICETOHOST (1 << 7)
-#define REQDIR_HOSTTODEVICE (0 << 7)
-#define REQTYPE_CLASS       (1 << 5)
-#define REQTYPE_STANDARD    (0 << 5)
-#define REQTYPE_VENDOR      (2 << 5)
 #define SYNCDELAY() SYNCDELAY4
 
 //************************** Configuration Handlers *****************************

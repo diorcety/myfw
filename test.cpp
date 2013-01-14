@@ -45,13 +45,19 @@ void debug_callback(libusb_transfer *transfer) {
 }
 
 void debug_wait(libusb_device_handle *hndl) {
+	int rv;
 	libusb_transfer *transfer = libusb_alloc_transfer(1);
 	debug_packet *dp = (debug_packet *)malloc(sizeof(debug_packet));
 	dp->data = (unsigned char *)malloc(256);
 	dp->hndl = hndl;
     libusb_fill_iso_transfer(transfer, hndl, 0x4, dp->data, 256, 1, (libusb_transfer_cb_fn)debug_callback, dp, 0);
-	libusb_submit_transfer(transfer);
-	printf("!!Submit\n");
+	rv = libusb_submit_transfer(transfer);
+	if(rv != 0) {
+		perror ("");
+        printf("libusb_submit_transfer failed: %s(%d)\n", libusb_error_name(rv), rv);
+	} else {
+		printf("!!Submit\n");
+	}
 }
 
 int main(int argc, char* argv[]) {
@@ -74,7 +80,7 @@ int main(int argc, char* argv[]) {
  libusb_claim_interface(hndl,0);
  libusb_set_interface_alt_setting(hndl,0,0);
  
- //debug_wait(hndl);
+ debug_wait(hndl);
  
  int transferred;
  unsigned char buf2[128];

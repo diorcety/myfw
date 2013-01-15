@@ -25,6 +25,6 @@ BASENAME=firmware
 include ../../3rd/fx2lib/lib/fx2.mk
 
 test: test.cpp
-	g++ -o test test.cpp -lusb-1.0
+	g++ -g -o test test.cpp -lusb-1.0
 
 

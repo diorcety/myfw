@@ -61,6 +61,7 @@ void debug_wait(libusb_device_handle *hndl) {
 }
 
 int read_debug(libusb_device_handle *hndl, int wait = 1) {
+	//return LIBUSB_ERROR_TIMEOUT;
 	int rv;
 	int transferred;
 	unsigned char buf[64];
@@ -74,12 +75,16 @@ int read_debug(libusb_device_handle *hndl, int wait = 1) {
 	return rv;
 }
 
-#define BENCH_DATA_SIZE (100000)
+#define BENCH_DATA_SIZE (512*512*4*10)
 int nb_transfer = 0;
 #ifdef WIN32
 LARGE_INTEGER bench_base_time;
 LARGE_INTEGER bench_start_time;
 LARGE_INTEGER bench_stop_time;
+#else
+struct timespec bench_base_time;
+struct timespec bench_start_time;
+struct timespec bench_stop_time;
 #endif
 
 void bench_start() {
@@ -87,6 +92,9 @@ nb_transfer = 0;
 #ifdef WIN32
 QueryPerformanceFrequency(&bench_base_time);
 QueryPerformanceCounter(&bench_start_time);
+#else
+clock_getres(CLOCK_MONOTONIC, &bench_base_time);
+clock_gettime(CLOCK_MONOTONIC, &bench_start_time);
 #endif
 }
 
@@ -97,6 +105,8 @@ void bench_inc() {
 void bench_stop() {
 #ifdef WIN32
 QueryPerformanceCounter(&bench_stop_time);
+#else
+clock_gettime(CLOCK_MONOTONIC, &bench_stop_time);
 #endif
 }
 
@@ -107,6 +117,10 @@ void bench_stats() {
 	time = bench_stop_time.QuadPart - bench_start_time.QuadPart;
 	time /= bench_base_time.QuadPart;
 	time *= 1000;
+#else
+	time =  bench_stop_time.tv_nsec - bench_start_time.tv_nsec;
+	time /= 1000000;
+	time += (bench_stop_time.tv_sec - bench_start_time.tv_sec) * 1000;
 #endif
 	rate = (float) BENCH_DATA_SIZE / time;
 	printf("Stats %d bytes in %f ms : %f kbytes/s\n", BENCH_DATA_SIZE, time, rate);
@@ -117,7 +131,7 @@ int main(int argc, char* argv[]) {
 	int rv;
 	libusb_context* ctx;
 	libusb_init(&ctx);
-	//libusb_set_debug(ctx, LIBUSB_LOG_LEVEL_DEBUG);
+	libusb_set_debug(ctx, 4);
 	libusb_device_handle* hndl = libusb_open_device_with_vid_pid(ctx,0x04b4,0x1004);
 	if(hndl == NULL) {
 		printf("Can't open device\n");
@@ -133,6 +147,8 @@ int main(int argc, char* argv[]) {
 	libusb_set_configuration(hndl, 1);
 	libusb_claim_interface(hndl, 0);
 	libusb_set_interface_alt_setting(hndl, 0, 0);
+
+	while(read_debug(hndl) != LIBUSB_ERROR_TIMEOUT);
  
  	printf("TOTO\n"); 
 	rv = libusb_control_transfer(hndl, 
@@ -195,13 +211,13 @@ int main(int argc, char* argv[]) {
         return rv;
 	}
 	read_debug(hndl, 0);
-	
+
 	bench_start();
 	int timeout_count = 0;
 	while(bench_size > 0) {
 		int len = bench_size;
 		int transferred;
-		#define BUF_SIZE (1024)
+		#define BUF_SIZE (512)
 		unsigned char buf[BUF_SIZE];
 		if(len > BUF_SIZE) {
 			len = BUF_SIZE;
@@ -230,8 +246,11 @@ int main(int argc, char* argv[]) {
 	}
 	bench_stop();
 	printf("Test end\n");
-	while(read_debug(hndl) != LIBUSB_ERROR_TIMEOUT);
-	libusb_close(hndl);
 	bench_stats();
+
+	while(read_debug(hndl) != LIBUSB_ERROR_TIMEOUT);
+
+	libusb_release_interface(hndl, 0);
+	libusb_close(hndl);
 	return 0;
 }

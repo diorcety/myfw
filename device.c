@@ -39,7 +39,7 @@ BOOL handle_get_interface(BYTE ifc, BYTE* alt_ifc) {
 // NOTE this function should reconfigure and reset the endpoints
 // according to the interface descriptors you provided.
 BOOL handle_set_interface(BYTE ifc, BYTE alt_ifc) {  
- usb_printf("Set Interface 0x%x 0x%x.\n", ifc, alt_ifc);
+ //usb_printf("Set Interface 0x%x 0x%x.\n", ifc, alt_ifc);
  //interface=ifc;
  //alt=alt_ifc;
  return TRUE;
@@ -56,7 +56,7 @@ BYTE handle_get_configuration() {
 
 // NOTE changing config requires the device to reset all the endpoints
 BOOL handle_set_configuration(BYTE cfg) { 
- usb_printf("Set Configuration 0x%x.\n", cfg);
+ //usb_printf("Set Configuration 0x%x.\n", cfg);
  //config=cfg;
  return TRUE;
 }
@@ -160,18 +160,19 @@ void main_init() {
  // set IFCONFIG
  EP1INCFG &= ~bmVALID; SYNCDELAY(); 
  EP1OUTCFG &= ~bmVALID;
- EP2CFG = (bmVALID | bmBULK | bmBUF3X | bmBUF1024 | bmDIR); SYNCDELAY();
+ EP2CFG = (bmVALID | bmBULK | bmBUF3X /*| bmBUF1024*/ | bmDIR); SYNCDELAY();
  EP4CFG &= ~bmVALID; /* = (bmVALID | bmISO | bmBUF2X | bmDIR);*/ SYNCDELAY(); 
  EP6CFG &= ~bmVALID;  SYNCDELAY();
  EP8CFG = (bmVALID | bmBULK | bmBUF2X | bmDIR); SYNCDELAY(); 
 }
 
+#define BUFF_SIZE (512)
 void main_loop() {
 	if(bench_size) {
 		while((EP2468STAT & bmEP2FULL) == 0) {
-			int len = bench_size;
-			if(len > 1024) {
-				len = 1024;
+			long len = bench_size;
+			if(len > BUFF_SIZE) {
+				len = BUFF_SIZE;
 			}
 			bench_size -= len;
 			

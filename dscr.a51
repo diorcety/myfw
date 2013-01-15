@@ -110,7 +110,7 @@ highspd_dscr_end:
 	.db	0x82				; ep2 dir=in and address
 	.db	ENDPOINT_TYPE_BULK	; type
 	.db	0x00				; max packet LSB
-	.db	0x14				; max packet size=1024 bytes *3
+	.db	0x12				; max packet size=1024 bytes *3
 	.db	0x00				; polling interval
 	
 ; endpoint 8 in

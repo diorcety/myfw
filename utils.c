@@ -22,7 +22,8 @@ int usb_printf(const char *format, ...) {
     int ret;
     va_list argptr;
     char *dest = EP8FIFOBUF;
-	if(!usb_debug) return -1;
+    //return -1;
+    if(!usb_debug) return -1;
     while(EP2468STAT & bmEP8FULL) {
            __asm
            nop

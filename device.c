@@ -132,16 +132,16 @@ void reset() {
  bench_size = 0;
  
  EP2CS &= ~bmBIT0; SYNCDELAY();// remove stall bit
- EP8CS &= ~bmBIT0; SYNCDELAY();// remove stall bit
+ EP6CS &= ~bmBIT0; SYNCDELAY();// remove stall bit
  
   // Reset all the FIFOs
  FIFORESET = bmNAKALL; SYNCDELAY(); 
  FIFORESET = 2; SYNCDELAY();   // reset EP2
- FIFORESET = 8; SYNCDELAY();   // reset EP8
+ FIFORESET = 6; SYNCDELAY();   // reset EP8
  FIFORESET = 0x00; SYNCDELAY(); 
  
  EP2FIFOCFG &= ~bmBIT0; SYNCDELAY();// not worldwide
- EP8FIFOCFG &= ~bmBIT0; SYNCDELAY();// not worldwide
+ EP6FIFOCFG &= ~bmBIT0; SYNCDELAY();// not worldwide
  
  usb_debug_disable();
 }
@@ -160,10 +160,10 @@ void main_init() {
  // set IFCONFIG
  EP1INCFG &= ~bmVALID; SYNCDELAY(); 
  EP1OUTCFG &= ~bmVALID;
- EP2CFG = (bmVALID | bmBULK | bmBUF3X /*| bmBUF1024*/ | bmDIR); SYNCDELAY();
+ EP2CFG = (bmVALID | bmBULK | bmBUF4X /*| bmBUF1024*/ | bmDIR); SYNCDELAY();
  EP4CFG &= ~bmVALID; /* = (bmVALID | bmISO | bmBUF2X | bmDIR);*/ SYNCDELAY(); 
- EP6CFG &= ~bmVALID;  SYNCDELAY();
- EP8CFG = (bmVALID | bmBULK | bmBUF2X | bmDIR); SYNCDELAY(); 
+ EP6CFG = (bmVALID | bmBULK | bmBUF2X | bmDIR); SYNCDELAY(); 
+ EP8CFG &= ~bmVALID;  SYNCDELAY();
 }
 
 #define BUFF_SIZE (512)

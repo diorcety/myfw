@@ -29,43 +29,12 @@
 	#include <libusb-1.0/libusb.h>
 #endif
 
-typedef struct _debug_packet {
-	unsigned char *data;
-	libusb_device_handle *hndl;
-} debug_packet;
-
-void debug_wait(libusb_device_handle *hndl);
-
-void debug_callback(libusb_transfer *transfer) {
-	printf("!!Receive\n");
-	debug_packet *dp = (debug_packet *) transfer->user_data;
-	libusb_free_transfer(transfer);
-	free(dp->data);
-	free(dp);
-}
-
-void debug_wait(libusb_device_handle *hndl) {
-	int rv;
-	libusb_transfer *transfer = libusb_alloc_transfer(1);
-	debug_packet *dp = (debug_packet *)malloc(sizeof(debug_packet));
-	dp->data = (unsigned char *)malloc(256);
-	dp->hndl = hndl;
-    libusb_fill_iso_transfer(transfer, hndl, 0x4, dp->data, 256, 1, (libusb_transfer_cb_fn)debug_callback, dp, 0);
-	rv = libusb_submit_transfer(transfer);
-	if(rv != 0) {
-		perror ("");
-        printf("libusb_submit_transfer failed: %s(%d)\n", libusb_error_name(rv), rv);
-	} else {
-		printf("!!Submit\n");
-	}
-}
-
 int read_debug(libusb_device_handle *hndl, int wait = 1) {
 	//return LIBUSB_ERROR_TIMEOUT;
 	int rv;
 	int transferred;
 	unsigned char buf[64];
-	rv = libusb_bulk_transfer(hndl, 0x88, (unsigned char*)buf, sizeof(buf), &transferred, wait); 
+	rv = libusb_bulk_transfer(hndl, 0x86, (unsigned char*)buf, sizeof(buf), &transferred, wait); 
 	if (rv == 0 && transferred > 0) {
 		printf("%s", buf); 
 		fflush(stdout);
@@ -131,7 +100,7 @@ int main(int argc, char* argv[]) {
 	int rv;
 	libusb_context* ctx;
 	libusb_init(&ctx);
-	libusb_set_debug(ctx, 4);
+	//libusb_set_debug(ctx, 4);
 	libusb_device_handle* hndl = libusb_open_device_with_vid_pid(ctx,0x04b4,0x1004);
 	if(hndl == NULL) {
 		printf("Can't open device\n");
@@ -217,12 +186,12 @@ int main(int argc, char* argv[]) {
 	while(bench_size > 0) {
 		int len = bench_size;
 		int transferred;
-		#define BUF_SIZE (512)
+		#define BUF_SIZE (512*3)
 		unsigned char buf[BUF_SIZE];
 		if(len > BUF_SIZE) {
 			len = BUF_SIZE;
 		}
-		rv = libusb_bulk_transfer(hndl, 0x82, (unsigned char*)buf, len, &transferred, 100); 
+		rv = libusb_bulk_transfer(hndl, 0x82, (unsigned char*)buf, len, &transferred, 1); 
 		bench_size -= transferred;
 		if(rv != LIBUSB_ERROR_TIMEOUT) {
 			if (rv != 0) {

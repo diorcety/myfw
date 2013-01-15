@@ -21,10 +21,10 @@ int usb_printf(const char *format, ...) {
     int len;
     int ret;
     va_list argptr;
-    char *dest = EP8FIFOBUF;
+    char *dest = EP6FIFOBUF;
     //return -1;
     if(!usb_debug) return -1;
-    while(EP2468STAT & bmEP8FULL) {
+    while(EP2468STAT & bmEP6FULL) {
            __asm
            nop
            nop
@@ -43,9 +43,9 @@ int usb_printf(const char *format, ...) {
     if(len > 0) {
     len++;
       // ARM ep6 out
-      EP8BCH=MSB(len);
+      EP6BCH=MSB(len);
       SYNCDELAY();
-      EP8BCL=LSB(len);
+      EP6BCL=LSB(len);
     }
     return ret;
 }

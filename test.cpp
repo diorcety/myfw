@@ -74,7 +74,7 @@ int read_debug(libusb_device_handle *hndl, int wait = 1) {
 	return rv;
 }
 
-#define BENCH_DATA_SIZE (40000)
+#define BENCH_DATA_SIZE (100000)
 int nb_transfer = 0;
 #ifdef WIN32
 LARGE_INTEGER bench_base_time;
@@ -117,6 +117,7 @@ int main(int argc, char* argv[]) {
 	int rv;
 	libusb_context* ctx;
 	libusb_init(&ctx);
+	//libusb_set_debug(ctx, LIBUSB_LOG_LEVEL_DEBUG);
 	libusb_device_handle* hndl = libusb_open_device_with_vid_pid(ctx,0x04b4,0x1004);
 	if(hndl == NULL) {
 		printf("Can't open device\n");
@@ -132,6 +133,21 @@ int main(int argc, char* argv[]) {
 	libusb_set_configuration(hndl, 1);
 	libusb_claim_interface(hndl, 0);
 	libusb_set_interface_alt_setting(hndl, 0, 0);
+ 
+ 	printf("TOTO\n"); 
+	rv = libusb_control_transfer(hndl, 
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		0x94,
+		0x11,
+		0x22,
+		0,
+		0,
+		0);
+	if(rv != 0) {
+        printf ( "CONTROL Transfer failed: %s(%d)\n", libusb_error_name(rv), rv);
+        return rv;
+	}
+	read_debug(hndl, 0);
  
 	printf("RESET\n"); 
 	rv = libusb_control_transfer(hndl, 
@@ -185,12 +201,12 @@ int main(int argc, char* argv[]) {
 	while(bench_size > 0) {
 		int len = bench_size;
 		int transferred;
-		#define BUF_SIZE (1024*3)
+		#define BUF_SIZE (1024)
 		unsigned char buf[BUF_SIZE];
 		if(len > BUF_SIZE) {
 			len = BUF_SIZE;
 		}
-		rv = libusb_bulk_transfer(hndl, 0x82, (unsigned char*)buf, len, &transferred, 1); 
+		rv = libusb_bulk_transfer(hndl, 0x82, (unsigned char*)buf, len, &transferred, 100); 
 		bench_size -= transferred;
 		if(rv != LIBUSB_ERROR_TIMEOUT) {
 			if (rv != 0) {

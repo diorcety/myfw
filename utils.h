@@ -8,7 +8,7 @@
 #define bmBUF1024 bmBIT3
 #define bmBUF2X bmBIT1
 #define bmBUF4X 0
-#define bmBUF3X (bmBIT1 | bmBIT2)
+#define bmBUF3X (bmBIT0 | bmBIT1)
 
 #ifndef UTILS__
 #define UTILS__

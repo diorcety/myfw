@@ -54,7 +54,6 @@ BYTE handle_get_configuration() {
  return 1;
 }
 
-volatile __bit aa=0;
 // NOTE changing config requires the device to reset all the endpoints
 BOOL handle_set_configuration(BYTE cfg) { 
  usb_printf("Set Configuration 0x%x.\n", cfg);
@@ -106,7 +105,20 @@ BOOL handle_vendorcommand(BYTE cmd) {
 		EP0BCL = 0;
 		EP0CS |= bmHSNAK;
 		return TRUE;
-	} else if(cmd == 0x99) {
+	} else if(cmd == 0x94) {
+		__bit enabled  = usb_debug_enabled();
+		if(!enabled) {
+			usb_debug_enable();
+		}
+		usb_printf("#TOTO %x %x\n", EP2CS, EP2CFG);
+		if(!enabled) {
+			usb_debug_disable();
+		}
+		EP0BCH = 0;
+		EP0BCL = 0;
+		EP0CS |= bmHSNAK;
+		return TRUE;
+	}else if(cmd == 0x99) {
 		EP0BCH = 0;
 		EP0BCL = 0;
 		EP0CS |= bmHSNAK;
@@ -118,24 +130,19 @@ BOOL handle_vendorcommand(BYTE cmd) {
 
 void reset() {
  bench_size = 0;
+ 
+ EP2CS &= ~bmBIT0; SYNCDELAY();// remove stall bit
+ EP8CS &= ~bmBIT0; SYNCDELAY();// remove stall bit
+ 
   // Reset all the FIFOs
- FIFORESET = bmNAKALL;
- SYNCDELAY(); FIFORESET = bmNAKALL | 2;  // reset EP2
- SYNCDELAY(); FIFORESET = bmNAKALL | 4;  // reset EP4
- SYNCDELAY(); FIFORESET = bmNAKALL | 6;  // reset EP6
- SYNCDELAY(); FIFORESET = bmNAKALL | 8;  // reset EP8
- SYNCDELAY(); FIFORESET = 0x00;
- SYNCDELAY(); 
+ FIFORESET = bmNAKALL; SYNCDELAY(); 
+ FIFORESET = 2; SYNCDELAY();   // reset EP2
+ FIFORESET = 8; SYNCDELAY();   // reset EP8
+ FIFORESET = 0x00; SYNCDELAY(); 
  
- /*// Reset data toggle to 0
- TOGCTL = 0x12;  // EP2 IN
- TOGCTL = 0x32;  // EP2 IN Reset
- SYNCDELAY();
+ EP2FIFOCFG &= ~bmBIT0; SYNCDELAY();// not worldwide
+ EP8FIFOCFG &= ~bmBIT0; SYNCDELAY();// not worldwide
  
-  // Reset data toggle to 0
- TOGCTL = 0x18;  // EP8 IN
- TOGCTL = 0x38;  // EP8 IN Reset
- SYNCDELAY();*/
  usb_debug_disable();
 }
 
@@ -144,12 +151,13 @@ void reset() {
 void main_init() {
  REVCTL = 0x03;
  SYNCDELAY(); 
- SETIF48MHZ();
- SYNCDELAY(); 
+ PORTACFG = 0x00;
+ //SETIF48MHZ();
+ //SYNCDELAY(); 
   
  reset();
- 
-  // set IFCONFIG
+
+ // set IFCONFIG
  EP1INCFG &= ~bmVALID; SYNCDELAY(); 
  EP1OUTCFG &= ~bmVALID;
  EP2CFG = (bmVALID | bmBULK | bmBUF3X | bmBUF1024 | bmDIR); SYNCDELAY();

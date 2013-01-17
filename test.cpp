@@ -44,7 +44,7 @@ int read_debug(libusb_device_handle *hndl, int wait = 1) {
 	return rv;
 }
 
-#define BENCH_DATA_SIZE (512*512*4*10)
+#define BENCH_DATA_SIZE (1024*1024*100)
 int nb_transfer = 0;
 #ifdef WIN32
 LARGE_INTEGER bench_base_time;
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
 		return -100;
 	}
 #ifndef TEST1
-	bool continue_thread = TRUE;
+	bool continue_thread = true;
 	//std::thread usb_thread(thread_fct, ctx, std::ref(continue_thread)); // pass by reference
 	USBDevice device(hndl);
 #endif
@@ -185,12 +185,12 @@ int main(int argc, char* argv[]) {
 	
 	
 	int bench_size = BENCH_DATA_SIZE;
-    printf("Send Test\n");
+    printf("Start Test\n");
 	rv = libusb_control_transfer(hndl, 
 		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
 		0x92,
-		0xffff & bench_size,
-		0xffff & (bench_size >> 16),
+		0xffff,
+		0xffff,
 		0,
 		0,
 		0);
@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
 	read_debug(hndl, 0);
 
 #ifndef TEST1
-	USBRequest request(128, 512);
+	USBRequest request(8, 2048);
 #endif
 	bench_start();
 #ifndef TEST1
@@ -237,8 +237,25 @@ int main(int argc, char* argv[]) {
 #endif
 	
 	bench_stop();
+
+    printf("Start Test\n");
+	rv = libusb_control_transfer(hndl, 
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		0x93,
+		0xffff,
+		0xffff,
+		0,
+		0,
+		0);
+	if(rv != 0) {
+        printf ( "CONTROL(Start) Transfer failed: %s(%d)\n", libusb_error_name(rv), rv);
+        return rv;
+	}
+
 	printf("Test end\n");
 	bench_stats();
+
+
 
 	while(read_debug(hndl) != LIBUSB_ERROR_TIMEOUT);
 
@@ -249,6 +266,6 @@ int main(int argc, char* argv[]) {
 
 	libusb_release_interface(hndl, 0);
 	libusb_close(hndl);
-	while(1);
+
 	return 0;
 }

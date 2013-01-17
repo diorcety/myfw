@@ -60,6 +60,10 @@ void USBRequest::receive(USBBuffer *buffer) {
 	if(buffer->getStatus() == LIBUSB_TRANSFER_COMPLETED) {
 		//std::cout << "Receive " << buffer->getActualLength() << std::endl;
 		bytes -= buffer->getActualLength();
+		/*int tt = buffer->getActualLength();
+		unsigned char * bb = buffer->getBuffer();
+		std::cout << *((unsigned short*)bb) << " " << (int)bb[tt-3] << 
+		" " << *((unsigned short*)(bb + tt - 2)) << std::endl; */
 	} else {
 		std::cout << "Error " << buffer->getStatus() << " with buffer 0x" << buffer << std::endl;
 	}

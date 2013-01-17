@@ -63,7 +63,8 @@ BOOL handle_set_configuration(BYTE cfg) {
 
 
 //******************* VENDOR COMMAND HANDLERS **************************
-long bench_size = 0;
+__bit bench_start = 0;
+long count = 0;
 BOOL handle_vendorcommand(BYTE cmd) {
 	if(cmd == 0x90) {
 		reset();
@@ -84,23 +85,19 @@ BOOL handle_vendorcommand(BYTE cmd) {
 		EP0CS |= bmHSNAK;
 		return TRUE;
 	} else if(cmd == 0x92) {
-		if(bench_size == 0) {
-			bench_size = SETUP_INDEX();
-			bench_size = SETUP_VALUE() | (bench_size << 16);
-			usb_printf("#Start %ld\n", bench_size);
-		}
+		usb_printf("#Start");
+		count = 0;
+		bench_start = 1;
 		EP0BCH = 0;
 		EP0BCL = 0;
 		EP0CS |= bmHSNAK;
 		return TRUE;
 	} else if(cmd == 0x93) {
-		if(bench_size != 0) {
-			usb_printf("#Interrupt\n");
-			bench_size = 0;
-			SYNCDELAY(); FIFORESET = bmNAKALL;
-			SYNCDELAY(); FIFORESET = bmNAKALL | 2;  // reset EP2
-			SYNCDELAY(); FIFORESET = 0x00;
-		}
+		usb_printf("#Stop\n");
+		bench_start = 0;
+		SYNCDELAY(); FIFORESET = bmNAKALL;
+		SYNCDELAY(); FIFORESET = bmNAKALL | 2;  // reset EP2
+		SYNCDELAY(); FIFORESET = 0x00;
 		EP0BCH = 0;
 		EP0BCL = 0;
 		EP0CS |= bmHSNAK;
@@ -129,8 +126,8 @@ BOOL handle_vendorcommand(BYTE cmd) {
 }
 
 void reset() {
- bench_size = 0;
- 
+ bench_start = 0;
+ count = 0;
  EP2CS &= ~bmBIT0; SYNCDELAY();// remove stall bit
  EP6CS &= ~bmBIT0; SYNCDELAY();// remove stall bit
  
@@ -168,24 +165,20 @@ void main_init() {
 
 #define BUFF_SIZE (512)
 void main_loop() {
-	if(bench_size) {
+	if(bench_start) {
 		while((EP2468STAT & bmEP2FULL) == 0) {
-			long len = bench_size;
-			if(len > BUFF_SIZE) {
-				len = BUFF_SIZE;
-			}
-			bench_size -= len;
-			
+			EP2FIFOBUF[0] = LSB(count);
+			EP2FIFOBUF[1] = MSB(count);
+			EP2FIFOBUF[BUFF_SIZE-3] = MICROFRAME;
+			EP2FIFOBUF[BUFF_SIZE-2] = USBFRAMEL;
+			EP2FIFOBUF[BUFF_SIZE-1] = USBFRAMEH;
+
 			// ARM ep2 in
-			EP2BCH = MSB(len);
+			EP2BCH = MSB(BUFF_SIZE);
 			SYNCDELAY();
-			EP2BCL = LSB(len);
+			EP2BCL = LSB(BUFF_SIZE);
 			SYNCDELAY();
-			
-			if(bench_size == 0) {
-				usb_printf("#End\n");
-				break;
-			}
+			++count;
 		}
 	}
 }

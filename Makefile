@@ -24,7 +24,13 @@ BASENAME=firmware
 
 include ../../3rd/fx2lib/lib/fx2.mk
 
-test: test.cpp
-	g++ -g -o test test.cpp -lusb-1.0
+test.o: test.cpp
+	i686-w64-mingw32-g++ -std=c++0x -O0 -fno-omit-frame-pointer -g -c test.cpp
+	
+USB.o: USB.cpp USB.h
+	i686-w64-mingw32-g++ -std=c++0x -O0 -fno-omit-frame-pointer -g -c USB.cpp
+	
+test: test.o USB.o
+	i686-w64-mingw32-g++ -o test.exe test.o USB.o -lusb-1.0
 
 

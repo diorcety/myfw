@@ -152,8 +152,8 @@ void main_init() {
  REVCTL = 0x03;
  SYNCDELAY(); 
  PORTACFG = 0x00;
- //SETIF48MHZ();
- //SYNCDELAY(); 
+ SETIF48MHZ();
+ SYNCDELAY(); 
   
  reset();
 

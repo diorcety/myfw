@@ -19,15 +19,15 @@
 #include <stdlib.h>
 #include <cstdio>
 #include <cassert>
+#include <thread>
 #ifdef WIN32
 #include <windows.h>
 	void usleep(int s) {
 	  Sleep(s/1000);
 	}
-	#include <libusbx-1.0/libusb.h>
-#else
-	#include <libusb-1.0/libusb.h>
 #endif
+#include "USB.h"
+
 
 int read_debug(libusb_device_handle *hndl, int wait = 1) {
 	//return LIBUSB_ERROR_TIMEOUT;
@@ -96,6 +96,20 @@ void bench_stats() {
 	printf("Nb transfer %d\n", nb_transfer);
 }
 
+//#define TEST1
+
+#ifndef TEST1
+void thread_fct(libusb_context *ctx, bool &ok) {
+	struct timeval tv;
+
+	while(ok) {
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
+		libusb_handle_events_timeout (ctx, &tv);
+	}
+}
+#endif
+
 int main(int argc, char* argv[]) {
 	int rv;
 	libusb_context* ctx;
@@ -106,6 +120,11 @@ int main(int argc, char* argv[]) {
 		printf("Can't open device\n");
 		return -100;
 	}
+#ifndef TEST1
+	bool continue_thread = TRUE;
+	//std::thread usb_thread(thread_fct, ctx, std::ref(continue_thread)); // pass by reference
+	USBDevice device(hndl);
+#endif
  
 #ifndef WIN32
 	rv = libusb_kernel_driver_active(hndl, 0); 
@@ -181,7 +200,13 @@ int main(int argc, char* argv[]) {
 	}
 	read_debug(hndl, 0);
 
+#ifndef TEST1
+	USBRequest request(128, 512);
+#endif
 	bench_start();
+#ifndef TEST1
+	request.request(ctx, &device, 0x82, BENCH_DATA_SIZE);
+#else
 	int timeout_count = 0;
 	while(bench_size > 0) {
 		int len = bench_size;
@@ -198,11 +223,7 @@ int main(int argc, char* argv[]) {
 				printf ( "IN Transfer(Bench) failed: %s(%d)\n", libusb_error_name(rv), rv);
 				read_debug(hndl, 500);
 				return rv;
-			}/* else if(transferred != len) {
-				printf ( "IN Transfer(Bench) failed: %d %d (remaining %d)\n", len, transferred, bench_size);
-				read_debug(hndl, 500);
-				return rv;
-			} */else {
+			} else {
 				timeout_count = 0;
 				bench_inc();
 			}
@@ -213,13 +234,21 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
+#endif
+	
 	bench_stop();
 	printf("Test end\n");
 	bench_stats();
 
 	while(read_debug(hndl) != LIBUSB_ERROR_TIMEOUT);
 
+#ifndef TEST1
+	continue_thread = false;
+	//usb_thread.join();
+#endif
+
 	libusb_release_interface(hndl, 0);
 	libusb_close(hndl);
+	while(1);
 	return 0;
 }
